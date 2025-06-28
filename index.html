@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K3 - 安全隐患排除训练</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>科目三 安全隐患排除训练</h1>
+            <div class="mode-switcher">
+                <button id="practice-mode-btn" class="mode-btn active">📝 做题模式</button>
+                <button id="review-mode-btn" class="mode-btn">📚 速览模式</button>
+            </div>
+        </header>
+
+        <main class="app-main">
+            <div id="question-area">
+                <!-- 题目内容将由 JS 动态生成 -->
+            </div>
+        </main>
+
+        <footer class="app-footer">
+            <button id="prev-btn" class="nav-btn">上一题</button>
+            <span id="counter" class="counter">1 / 11</span>
+            <button id="next-btn" class="nav-btn">下一题</button>
+        </footer>
+    </div>
+
+    <script src="k3-data.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
