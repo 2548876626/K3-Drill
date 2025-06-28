@@ -1,0 +1,15 @@
+# netlify.toml
+
+# 这个配置告诉 Netlify 你的 serverless functions 存放在哪个目录下
+[functions]
+  directory = "netlify/functions/"
+
+# 这段重定向规则是关键
+[[redirects]]
+  # from 表示前端请求的路径
+  from = "/api/*"
+  # to 表示这个请求应该被转发到哪里
+  to = "/.netlify/functions/:splat"
+  # status = 200 表示这是一个“重写(Rewrite)”，而不是一个“跳转(Redirect)”
+  # 浏览器地址栏的 URL 不会改变
+  status = 200
