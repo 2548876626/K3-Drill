@@ -29,25 +29,34 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to update the UI based on user state
     const updateUserState = (user) => {
-        if (user && user.token) { // Logged-in Netlify user
+        // 先清除可能存在的旧的游客欢迎信息
+        const existingGuestWelcome = document.querySelector('.guest-welcome');
+        if (existingGuestWelcome) existingGuestWelcome.remove();
+    
+        if (user && user.token) { // 情况1: Netlify 用户已登录
             currentUser = user;
-            guestLoginBtn.style.display = 'none'; // Hide guest button
+            identityMenu.style.display = 'block'; // 显示Netlify菜单(Log out)
+            guestLoginBtn.style.display = 'none';  // 隐藏游客按钮
             console.log('Logged in as:', user.email);
-            // Future: Load user's saved data here
-        } else if (user && user.isGuest) { // Guest user
+            
+        } else if (user && user.isGuest) { // 情况2: 用户是游客
             currentUser = user;
-            identityMenu.style.display = 'none'; // Hide Netlify login/logout
-            guestLoginBtn.style.display = 'none'; // Hide guest button after "login"
-            // Create a fake welcome message for guest
+            identityMenu.style.display = 'none'; // 隐藏Netlify菜单(Sign up/Log in)
+            guestLoginBtn.style.display = 'none'; // 隐藏游客按钮
+            
+            // 创建并显示游客欢迎信息
             const guestWelcome = document.createElement('div');
             guestWelcome.className = 'guest-welcome';
-            guestWelcome.innerHTML = `<span>欢迎, 游客 (ID: ${user.id.substring(0, 12)}...)</span> <button id="exit-guest-btn">退出游客模式</button>`;
-            identityMenu.parentNode.insertBefore(guestWelcome, identityMenu.nextSibling);
+            // 截取ID让显示更美观
+            const shortId = user.id.length > 12 ? user.id.substring(6, 12) : user.id;
+            guestWelcome.innerHTML = `<span>游客模式 (ID: ...${shortId})</span> <button id="exit-guest-btn">退出</button>`;
+            identityMenu.parentNode.insertBefore(guestWelcome, identityMenu);
             console.log('Entered Guest Mode with ID:', user.id);
-            // Future: Load guest's saved data here
-        } else { // Not logged in, not a guest
+    
+        } else { // 情况3: 完全未登录
             currentUser = null;
-            guestLoginBtn.style.display = 'inline-block'; // Show guest button
+            identityMenu.style.display = 'block'; // 显示Netlify菜单(Sign up/Log in)
+            guestLoginBtn.style.display = 'inline-block'; // **显示**游客按钮
             console.log('No user logged in. Offering guest mode.');
         }
     };

@@ -10,18 +10,21 @@
 <body>
     <div class="container">
         <header class="app-header">
-            <h1>科目三 安全隐患排除训练</h1>
-            <div class="controls-wrapper"> <!-- 新增一个包裹层，便于布局 -->
-                <div data-netlify-identity-menu></div>
-                <!-- 添加游客登录按钮 -->
-                <button id="guest-login-btn" class="mode-btn" style="display: none;">游客模式</button>
-                <!-- 新增乱序按钮 -->
+            <div class="header-title">
+                <h1>科目三 安全隐患排除训练</h1>
+            </div>
+            <div class="header-controls">
                 <button id="shuffle-btn" class="mode-btn">🔀 乱序练习</button>
-                <!-- 新增恢复顺序按钮 -->
-                <button id="reset-order-btn" class="mode-btn">🔢 默认顺序</button> 
-            <div class="mode-switcher">
-                <button id="practice-mode-btn" class="mode-btn active">📝 做题模式</button>
-                <button id="review-mode-btn" class="mode-btn">📚 速览模式</button>
+                <button id="reset-order-btn" class="mode-btn">🔢 默认顺序</button>
+                <div class="mode-switcher">
+                    <button id="practice-mode-btn" class="mode-btn active">📝 做题模式</button>
+                    <button id="review-mode-btn" class="mode-btn">📚 速览模式</button>
+                </div>
+            </div>
+            <div class="header-user-area">
+                <!-- Netlify Identity Widget and Guest Mode will go here -->
+                <div data-netlify-identity-menu></div>
+                <button id="guest-login-btn" class="mode-btn guest-btn">游客模式</button>
             </div>
         </header>
 
