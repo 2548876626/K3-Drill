@@ -22,6 +22,45 @@ body {
     padding: 20px;
 }
 
+/* 游客模式样式 */
+#guest-login-btn {
+    padding: 8px 16px;
+    border: 1px solid #27ae60;
+    background-color: transparent;
+    color: #27ae60;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+#guest-login-btn:hover {
+    background-color: #27ae60;
+    color: white;
+}
+
+.guest-welcome {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.9em;
+}
+
+#exit-guest-btn {
+    font-size: 0.8em;
+    padding: 2px 6px;
+    border: 1px solid #ccc;
+    background: #f0f0f0;
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.guest-welcome span {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
 .container {
     width: 100%;
     max-width: 800px;
@@ -54,17 +93,6 @@ body {
     background-color: var(--primary-color);
     color: white;
     border-color: var(--primary-color);
-}
-
-/* 添加登录状态控制样式 */
-.app-main, .app-footer {
-    display: none; /* 默认隐藏 */
-}
-.app-main.logged-in {
-    display: block; /* 登录后显示 */
-}
-.app-footer.logged-in {
-    display: flex; /* 登录后显示 */
 }
 
 .app-main {

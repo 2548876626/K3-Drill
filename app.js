@@ -1,31 +1,83 @@
 // app.js for K3-Drill (V6 - Smart Sort & State Persistence)
 
 document.addEventListener('DOMContentLoaded', () => {
-    // 添加Netlify Identity用户登录状态检查
-    const mainArea = document.querySelector('.app-main');
-    const footerArea = document.querySelector('.app-footer');
+    // --- DOM Elements ---
+    const questionArea = document.getElementById('question-area');
+    const footer = document.querySelector('.app-footer');
+    const prevBtn = document.getElementById('prev-btn');
+    const nextBtn = document.getElementById('next-btn');
+    const counterEl = document.getElementById('counter');
+    const practiceModeBtn = document.getElementById('practice-mode-btn');
+    const reviewModeBtn = document.getElementById('review-mode-btn');
+    const shuffleBtn = document.getElementById('shuffle-btn');
+    const resetOrderBtn = document.getElementById('reset-order-btn');
 
-    netlifyIdentity.on('init', user => {
-        if (user) {
-            // 用户已登录
-            mainArea.classList.add('logged-in');
-            footerArea.classList.add('logged-in');
-            // 可以显示欢迎信息
-            console.log('Welcome', user.user_metadata.full_name);
+    // --- User & Guest State Management ---
+    const guestLoginBtn = document.getElementById('guest-login-btn');
+    const identityMenu = document.querySelector('[data-netlify-identity-menu]');
+    let currentUser = null; // Can be a Netlify user object or a guest object
+
+    // Function to get or create a guest ID
+    const getOrCreateGuestId = () => {
+        let guestId = localStorage.getItem('k3_guest_id');
+        if (!guestId) {
+            guestId = 'guest_' + new Date().getTime() + Math.random().toString(36).substring(2, 15);
+            localStorage.setItem('k3_guest_id', guestId);
+        }
+        return guestId;
+    };
+
+    // Function to update the UI based on user state
+    const updateUserState = (user) => {
+        if (user && user.token) { // Logged-in Netlify user
+            currentUser = user;
+            guestLoginBtn.style.display = 'none'; // Hide guest button
+            console.log('Logged in as:', user.email);
+            // Future: Load user's saved data here
+        } else if (user && user.isGuest) { // Guest user
+            currentUser = user;
+            identityMenu.style.display = 'none'; // Hide Netlify login/logout
+            guestLoginBtn.style.display = 'none'; // Hide guest button after "login"
+            // Create a fake welcome message for guest
+            const guestWelcome = document.createElement('div');
+            guestWelcome.className = 'guest-welcome';
+            guestWelcome.innerHTML = `<span>欢迎, 游客 (ID: ${user.id.substring(0, 12)}...)</span> <button id="exit-guest-btn">退出游客模式</button>`;
+            identityMenu.parentNode.insertBefore(guestWelcome, identityMenu.nextSibling);
+            console.log('Entered Guest Mode with ID:', user.id);
+            // Future: Load guest's saved data here
+        } else { // Not logged in, not a guest
+            currentUser = null;
+            guestLoginBtn.style.display = 'inline-block'; // Show guest button
+            console.log('No user logged in. Offering guest mode.');
+        }
+    };
+
+    // --- Event Listeners for User State ---
+    netlifyIdentity.on('init', user => updateUserState(user));
+    netlifyIdentity.on('login', user => updateUserState(user));
+    netlifyIdentity.on('logout', () => {
+        // Clear guest welcome message if it exists
+        const guestWelcome = document.querySelector('.guest-welcome');
+        if (guestWelcome) guestWelcome.remove();
+        identityMenu.style.display = 'block'; // Show Netlify login
+        updateUserState(null);
+    });
+
+    guestLoginBtn.addEventListener('click', () => {
+        const guestId = getOrCreateGuestId();
+        updateUserState({ id: guestId, isGuest: true });
+    });
+
+    // Event listener for exiting guest mode (using event delegation)
+    document.body.addEventListener('click', e => {
+        if (e.target && e.target.id === 'exit-guest-btn') {
+            const guestWelcome = document.querySelector('.guest-welcome');
+            if (guestWelcome) guestWelcome.remove();
+            identityMenu.style.display = 'block';
+            updateUserState(null);
         }
     });
 
-    netlifyIdentity.on('login', user => {
-        mainArea.classList.add('logged-in');
-        footerArea.classList.add('logged-in');
-        netlifyIdentity.close(); // 登录后关闭模态框
-    });
-
-    netlifyIdentity.on('logout', () => {
-        mainArea.classList.remove('logged-in');
-        footerArea.classList.remove('logged-in');
-    });
-    
     // --- 智能排序与状态初始化 ---
     const extractQuestionNumber = (title) => {
         const match = title.match(/\*(\d+)/);
@@ -41,17 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let currentQuestions = [...originalQuestions];
     let currentIndex = 0;
     let currentMode = 'practice';
-
-    // --- DOM Elements ---
-    const questionArea = document.getElementById('question-area');
-    const footer = document.querySelector('.app-footer');
-    const prevBtn = document.getElementById('prev-btn');
-    const nextBtn = document.getElementById('next-btn');
-    const counterEl = document.getElementById('counter');
-    const practiceModeBtn = document.getElementById('practice-mode-btn');
-    const reviewModeBtn = document.getElementById('review-mode-btn');
-    const shuffleBtn = document.getElementById('shuffle-btn');
-    const resetOrderBtn = document.getElementById('reset-order-btn');
 
     // --- 核心功能函数 ---
     const renderQuestions = () => {
