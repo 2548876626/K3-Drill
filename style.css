@@ -56,6 +56,17 @@ body {
     border-color: var(--primary-color);
 }
 
+/* 添加登录状态控制样式 */
+.app-main, .app-footer {
+    display: none; /* 默认隐藏 */
+}
+.app-main.logged-in {
+    display: block; /* 登录后显示 */
+}
+.app-footer.logged-in {
+    display: flex; /* 登录后显示 */
+}
+
 .app-main {
     padding: 30px;
     flex-grow: 1;
@@ -111,4 +122,48 @@ body {
 
 .option-item.correct-highlight input {
     accent-color: var(--correct-color); /* 让单选/复选框也变绿 */
+}
+
+/* --- 升级 Header 的样式 --- */
+.app-header {
+    flex-wrap: wrap; /* 在小屏幕上允许换行 */
+    gap: 15px;
+}
+
+.controls-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+#shuffle-btn {
+    padding: 8px 16px;
+    border: 1px solid #8e44ad;
+    background-color: transparent;
+    color: #8e44ad;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#shuffle-btn:hover, #shuffle-btn.active {
+    background-color: #8e44ad;
+    color: white;
+}
+
+#reset-order-btn {
+    padding: 8px 16px;
+    border: 1px solid #16a085; /* 换个颜色 */
+    background-color: transparent;
+    color: #16a085;
+    border-radius: 20px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#reset-order-btn:hover, #reset-order-btn.active {
+    background-color: #16a085;
+    color: white;
 }

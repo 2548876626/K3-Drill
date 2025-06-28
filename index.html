@@ -4,12 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>K3 - 安全隐患排除训练</title>
+    <script type="text/javascript" src="https://identity.netlify.com/v1/netlify-identity-widget.js"></script>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
         <header class="app-header">
             <h1>科目三 安全隐患排除训练</h1>
+            <div class="controls-wrapper"> <!-- 新增一个包裹层，便于布局 -->
+                <div data-netlify-identity-menu></div>
+                <!-- 新增乱序按钮 -->
+                <button id="shuffle-btn" class="mode-btn">🔀 乱序练习</button>
+                <!-- 新增恢复顺序按钮 -->
+                <button id="reset-order-btn" class="mode-btn">🔢 默认顺序</button> 
             <div class="mode-switcher">
                 <button id="practice-mode-btn" class="mode-btn active">📝 做题模式</button>
                 <button id="review-mode-btn" class="mode-btn">📚 速览模式</button>
@@ -31,5 +38,16 @@
 
     <script src="k3-data.js"></script>
     <script src="app.js"></script>
+    <script>
+      if (window.netlifyIdentity) {
+        window.netlifyIdentity.on("init", user => {
+          if (!user) {
+            window.netlifyIdentity.on("login", () => {
+              document.location.href = "/";
+            });
+          }
+        });
+      }
+    </script>
 </body>
 </html>
