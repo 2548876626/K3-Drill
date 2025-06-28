@@ -1,6 +1,15 @@
-// app.js for K3-Drill (V6 - Smart Sort & State Persistence)
+// app.js for K3-Drill (V7 - with Favorites & Mistakes)
 
 document.addEventListener('DOMContentLoaded', () => {
+    
+    // --- State ---
+    const originalQuestions = [...k3_questions].sort((a, b) => (a.title.match(/\*(\d+)/)?.[1] || 999) - (b.title.match(/\*(\d+)/)?.[1] || 999));
+    let currentQuestions = [...originalQuestions];
+    let currentIndex = 0;
+    let currentMode = 'practice';
+    let currentUser = null;
+    let userData = { favorites: [], mistakes: [] }; // 用户数据
+
     // --- DOM Elements ---
     const questionArea = document.getElementById('question-area');
     const footer = document.querySelector('.app-footer');
@@ -11,12 +20,46 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewModeBtn = document.getElementById('review-mode-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const resetOrderBtn = document.getElementById('reset-order-btn');
-
-    // --- User & Guest State Management ---
+    const showFavoritesBtn = document.getElementById('show-favorites-btn');
+    const showMistakesBtn = document.getElementById('show-mistakes-btn');
+    const allControls = document.querySelectorAll('.header-controls .mode-btn, .header-controls .filter-btn');
     const guestLoginBtn = document.getElementById('guest-login-btn');
     const identityMenu = document.querySelector('[data-netlify-identity-menu]');
-    let currentUser = null; // Can be a Netlify user object or a guest object
 
+    // --- Backend API Functions ---
+    const fetchUserData = async () => {
+        if (!netlifyIdentity.currentUser()) return;
+        try {
+            const response = await fetch('/api/user-data', {
+                headers: { Authorization: `Bearer ${netlifyIdentity.currentUser().token.access_token}` }
+            });
+            if (!response.ok) throw new Error('Failed to fetch user data');
+            userData = await response.json();
+            console.log("User data loaded:", userData);
+            renderQuestions(); // Re-render to show favorite status
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const saveUserData = async () => {
+        if (!netlifyIdentity.currentUser()) return;
+        try {
+            await fetch('/api/user-data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${netlifyIdentity.currentUser().token.access_token}`
+                },
+                body: JSON.stringify(userData)
+            });
+            console.log("User data saved:", userData);
+        } catch (error) {
+            console.error('Failed to save user data:', error);
+        }
+    };
+
+    // --- User & Guest State Management ---
     // Function to get or create a guest ID
     const getOrCreateGuestId = () => {
         let guestId = localStorage.getItem('k3_guest_id');
@@ -29,35 +72,48 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to update the UI based on user state
     const updateUserState = (user) => {
-        // 先清除可能存在的旧的游客欢迎信息
-        const existingGuestWelcome = document.querySelector('.guest-welcome');
-        if (existingGuestWelcome) existingGuestWelcome.remove();
-    
-        if (user && user.token) { // 情况1: Netlify 用户已登录
+        if (user && user.token) { // Logged-in Netlify user
             currentUser = user;
-            identityMenu.style.display = 'block'; // 显示Netlify菜单(Log out)
-            guestLoginBtn.style.display = 'none';  // 隐藏游客按钮
+            guestLoginBtn.style.display = 'none'; // Hide guest button
             console.log('Logged in as:', user.email);
-            
-        } else if (user && user.isGuest) { // 情况2: 用户是游客
-            currentUser = user;
-            identityMenu.style.display = 'none'; // 隐藏Netlify菜单(Sign up/Log in)
-            guestLoginBtn.style.display = 'none'; // 隐藏游客按钮
-            
-            // 创建并显示游客欢迎信息
+            // 登录后，获取用户数据
+            fetchUserData();
+            // 显示筛选按钮
+            if (showFavoritesBtn) showFavoritesBtn.style.display = 'inline-block';
+            if (showMistakesBtn) showMistakesBtn.style.display = 'inline-block';
+        } else if (user && user.isGuest) { // Guest user
+            currentUser = { sub: user.id, isGuest: true };
+            identityMenu.style.display = 'none'; // Hide Netlify login/logout
+            guestLoginBtn.style.display = 'none'; // Hide guest button after "login"
+            // Create a fake welcome message for guest
             const guestWelcome = document.createElement('div');
             guestWelcome.className = 'guest-welcome';
-            // 截取ID让显示更美观
-            const shortId = user.id.length > 12 ? user.id.substring(6, 12) : user.id;
-            guestWelcome.innerHTML = `<span>游客模式 (ID: ...${shortId})</span> <button id="exit-guest-btn">退出</button>`;
-            identityMenu.parentNode.insertBefore(guestWelcome, identityMenu);
+            guestWelcome.innerHTML = `<span>欢迎, 游客 (ID: ${user.id.substring(0, 12)}...)</span> <button id="exit-guest-btn">退出游客模式</button>`;
+            identityMenu.parentNode.insertBefore(guestWelcome, identityMenu.nextSibling);
             console.log('Entered Guest Mode with ID:', user.id);
-    
-        } else { // 情况3: 完全未登录
+            // 显示筛选按钮
+            if (showFavoritesBtn) showFavoritesBtn.style.display = 'inline-block';
+            if (showMistakesBtn) showMistakesBtn.style.display = 'inline-block';
+            // 尝试从localStorage加载游客数据
+            try {
+                const savedData = localStorage.getItem(`k3_guest_data_${user.id}`);
+                if (savedData) {
+                    userData = JSON.parse(savedData);
+                    renderQuestions(); // 重新渲染以显示收藏状态
+                }
+            } catch (error) {
+                console.error('Failed to load guest data:', error);
+            }
+        } else { // Not logged in, not a guest
             currentUser = null;
-            identityMenu.style.display = 'block'; // 显示Netlify菜单(Sign up/Log in)
-            guestLoginBtn.style.display = 'inline-block'; // **显示**游客按钮
+            guestLoginBtn.style.display = 'inline-block'; // Show guest button
             console.log('No user logged in. Offering guest mode.');
+            // 登出后重置状态
+            userData = { favorites: [], mistakes: [] };
+            if (showFavoritesBtn) showFavoritesBtn.style.display = 'none';
+            if (showMistakesBtn) showMistakesBtn.style.display = 'none';
+            currentQuestions = [...originalQuestions];
+            renderQuestions();
         }
     };
 
@@ -86,29 +142,15 @@ document.addEventListener('DOMContentLoaded', () => {
             updateUserState(null);
         }
     });
-
-    // --- 智能排序与状态初始化 ---
-    const extractQuestionNumber = (title) => {
-        const match = title.match(/\*(\d+)/);
-        return match ? parseInt(match[1]) : 999; // 如果没有题号，放到最后
-    };
-
-    const originalQuestions = [...k3_questions].sort((a, b) => {
-        const numA = extractQuestionNumber(a.title);
-        const numB = extractQuestionNumber(b.title);
-        return numA - numB;
-    });
     
-    let currentQuestions = [...originalQuestions];
-    let currentIndex = 0;
-    let currentMode = 'practice';
-
     // --- 核心功能函数 ---
     const renderQuestions = () => {
         questionArea.innerHTML = '';
         currentQuestions.forEach((q, index) => {
             const isMulti = q.correctAnswer.includes('┋');
             const inputType = isMulti ? 'checkbox' : 'radio';
+            const isFavorited = userData.favorites.includes(q.questionNumber);
+            const isMistake = userData.mistakes.includes(q.questionNumber);
 
             const optionsHTML = q.options.map((opt, i) => {
                 const optionChar = opt.charAt(0);
@@ -122,8 +164,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const questionDiv = document.createElement('div');
             questionDiv.className = 'question-item';
             questionDiv.id = `q-${index}`;
+            questionDiv.dataset.questionNumber = q.questionNumber; // 存储问题编号
             questionDiv.innerHTML = `
-                <div class="question-title">${q.title}</div>
+                <div class="question-title">
+                    <span>${q.title}</span>
+                    <button class="favorite-btn ${isFavorited ? 'favorited' : ''}" data-q-num="${q.questionNumber}" title="收藏/取消收藏">⭐</button>
+                </div>
                 <div class="question-image"><img src="${q.image}" alt="题目图片" loading="lazy"></div>
                 <div class="options-list">${optionsHTML}</div>
                 <div class="action-buttons">
@@ -156,6 +202,20 @@ document.addEventListener('DOMContentLoaded', () => {
         const correctValues = questionData.correctAnswer.split('┋').map(ans => ans.charAt(0)).sort();
         
         const isCorrect = selectedValues.length === correctValues.length && selectedValues.every((v, i) => v === correctValues[i]);
+
+        if (!isCorrect && currentUser) {
+            // 自动记录错题
+            if (!userData.mistakes.includes(questionData.questionNumber)) {
+                userData.mistakes.push(questionData.questionNumber);
+                if (currentUser.isGuest) {
+                    // 保存到localStorage
+                    localStorage.setItem(`k3_guest_data_${currentUser.sub}`, JSON.stringify(userData));
+                } else {
+                    saveUserData(); // 异步保存到服务器
+                }
+                showToast("已加入错题本！");
+            }
+        }
 
         answerArea.innerHTML = `<strong>${isCorrect ? '回答正确！' : '回答错误！'}</strong><br>正确答案：${questionData.correctAnswer}`;
         answerArea.className = `answer-area ${isCorrect ? 'correct' : 'incorrect'}`;
@@ -199,8 +259,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- 排序功能 (已升级) ---
     const shuffleQuestions = () => {
+        if (allControls) {
+            allControls.forEach(btn => btn.classList.remove('active'));
+        }
         shuffleBtn.classList.add('active');
-        resetOrderBtn.classList.remove('active');
         for (let i = currentQuestions.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
             [currentQuestions[i], currentQuestions[j]] = [currentQuestions[j], currentQuestions[i]];
@@ -212,13 +274,34 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const resetOrder = () => {
+        if (allControls) {
+            allControls.forEach(btn => btn.classList.remove('active'));
+        }
         resetOrderBtn.classList.add('active');
-        shuffleBtn.classList.remove('active');
         currentQuestions = [...originalQuestions];
         renderQuestions();
         showQuestion(0);
         setMode(currentMode); // 关键：保持当前模式
         showToast("已恢复默认顺序！");
+    };
+
+    // --- 新增：题目筛选逻辑 ---
+    const filterQuestions = (type) => {
+        if (allControls) {
+            allControls.forEach(btn => btn.classList.remove('active'));
+        }
+        if (type === 'favorites' && showFavoritesBtn) showFavoritesBtn.classList.add('active');
+        if (type === 'mistakes' && showMistakesBtn) showMistakesBtn.classList.add('active');
+
+        const idList = userData[type];
+        if (idList.length === 0) {
+            alert(`你的${type === 'favorites' ? '收藏夹' : '错题本'}是空的！`);
+            return;
+        }
+        currentQuestions = originalQuestions.filter(q => idList.includes(q.questionNumber));
+        renderQuestions();
+        showQuestion(0);
+        showToast(`已显示${type === 'favorites' ? '收藏' : '错题'}列表！`);
     };
 
     function setupEventListeners() {
@@ -228,11 +311,43 @@ document.addEventListener('DOMContentLoaded', () => {
         reviewModeBtn.addEventListener('click', () => setMode('review'));
         shuffleBtn.addEventListener('click', shuffleQuestions);
         resetOrderBtn.addEventListener('click', resetOrder);
+        
+        if (showFavoritesBtn) showFavoritesBtn.addEventListener('click', () => filterQuestions('favorites'));
+        if (showMistakesBtn) showMistakesBtn.addEventListener('click', () => filterQuestions('mistakes'));
 
         questionArea.addEventListener('click', (e) => {
             const questionItem = e.target.closest('.question-item');
             if (!questionItem) return;
             const indexInCurrentArray = parseInt(questionItem.id.split('-')[1]);
+            
+            // 处理收藏按钮点击
+            if (e.target.classList.contains('favorite-btn')) {
+                if (!currentUser) {
+                    alert('请先登录或进入游客模式以使用收藏功能！');
+                    netlifyIdentity.open();
+                    return;
+                }
+                
+                const qNum = parseInt(e.target.dataset.qNum);
+                e.target.classList.toggle('favorited');
+                const favIndex = userData.favorites.indexOf(qNum);
+                if (favIndex > -1) {
+                    userData.favorites.splice(favIndex, 1); // 取消收藏
+                    showToast('已取消收藏！');
+                } else {
+                    userData.favorites.push(qNum); // 添加收藏
+                    showToast('已添加到收藏！');
+                }
+                
+                if (currentUser.isGuest) {
+                    // 保存到localStorage
+                    localStorage.setItem(`k3_guest_data_${currentUser.sub}`, JSON.stringify(userData));
+                } else {
+                    saveUserData(); // 异步保存到服务器
+                }
+                return;
+            }
+            
             if (currentMode === 'practice') {
                 if (e.target.classList.contains('submit-btn')) checkAnswer(indexInCurrentArray);
                 if (e.target.classList.contains('reveal-btn')) revealAnswer(indexInCurrentArray);
@@ -262,6 +377,10 @@ document.addEventListener('DOMContentLoaded', () => {
     document.head.appendChild(toastStyle);
 
     function init() {
+        // 初始隐藏筛选按钮，只有登录后才显示
+        if (showFavoritesBtn) showFavoritesBtn.style.display = 'none';
+        if (showMistakesBtn) showMistakesBtn.style.display = 'none';
+        
         renderQuestions();
         showQuestion(0);
         setMode('practice');
