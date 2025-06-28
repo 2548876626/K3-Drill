@@ -17,22 +17,25 @@
     --highlight-bg-color: #eaf5ff;
 }
 
-/* Dark Mode Colors */
+/* Dark Mode Colors (V2 - High Contrast Black) */
 @media (prefers-color-scheme: dark) {
     :root {
-        --primary-color: #4aa3df;
-        --correct-color: #2ecc71;
-        --incorrect-color: #e74c3c;
-        --review-color: #f39c12;
-        --shuffle-color: #9b59b6;
-        --reset-color: #1abc9c;
-        --favorite-color: #f1c40f;
-        --bg-color: #2c3e50;
-        --card-bg-color: #34495e;
-        --text-color: #ecf0f1;
-        --text-color-light: #95a5a6;
-        --border-color: #4a6fa5;
-        --highlight-bg-color: #4a6fa5;
+        /* --- 主色调和功能色 --- */
+        --primary-color: #4a90e2;      /* 蓝色可以稍微亮一点，更突出 */
+        --correct-color: #2ecc71;      /* 绿色保持不变 */
+        --incorrect-color: #e74c3c;    /* 红色保持不变 */
+        --review-color: #f39c12;       /* 橙色保持不变 */
+        --shuffle-color: #9b59b6;       /* 紫色保持不变 */
+        --reset-color: #1abc9c;        /* 青色保持不变 */
+        --favorite-color: #f1c40f;     /* 黄色保持不变 */
+
+        /* --- 核心背景和文本颜色 (关键修改) --- */
+        --bg-color: #1e1e1e;           /* 页面背景色 -> VS Code 的深黑色 */
+        --card-bg-color: #252526;      /* 卡片/容器背景色 -> VS Code 的面板色 */
+        --text-color: #d4d4d4;         /* 主要文本颜色 -> 亮灰色，对比度高 */
+        --text-color-light: #808080;   /* 次要文本颜色 -> 中灰色 */
+        --border-color: #3c3c3c;       /* 边框颜色 -> 深灰色 */
+        --highlight-bg-color: #37373d; /* 选中项的背景色 */
     }
 }
 
