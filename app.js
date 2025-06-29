@@ -29,6 +29,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const guestLoginBtn = document.getElementById('guest-login-btn');
     const identityMenu = document.querySelector('[data-netlify-identity-menu]');
     const allControlButtons = document.querySelectorAll('.header-controls button');
+    const clearFavoritesBtn = document.getElementById('clear-favorites-btn');
+    const clearMistakesBtn = document.getElementById('clear-mistakes-btn');
 
     // --- Utility Functions ---
     const debounce = (func, delay) => {
@@ -96,6 +98,8 @@ document.addEventListener('DOMContentLoaded', () => {
             guestLoginBtn.style.display = 'none';
             showFavoritesBtn.style.display = 'inline-flex';
             showMistakesBtn.style.display = 'inline-flex';
+            clearFavoritesBtn.style.display = 'inline-flex';
+            clearMistakesBtn.style.display = 'inline-flex';
             if (user.isGuest) {
                 const welcome = document.createElement('div');
                 welcome.className = 'guest-welcome';
@@ -107,6 +111,8 @@ document.addEventListener('DOMContentLoaded', () => {
             guestLoginBtn.style.display = 'inline-block';
             showFavoritesBtn.style.display = 'none';
             showMistakesBtn.style.display = 'none';
+            clearFavoritesBtn.style.display = 'none';
+            clearMistakesBtn.style.display = 'none';
         }
         renderQuestions(false);
     };
@@ -228,6 +234,31 @@ document.addEventListener('DOMContentLoaded', () => {
         appState.currentQuestions = appState.originalQuestions.filter(q => idList.includes(q.questionNumber));
         renderQuestions(false);
         setMode('practice');
+        const clearUserData = (type) => {
+            const typeName = type === 'favorites' ? '收藏夹' : '错题本';
+            if (!appState.currentUser) {
+                alert(`请先登录或进入游客模式以管理${typeName}！`);
+                return;
+            }
+        
+            if (appState.userData[type].length === 0) {
+                showToast(`${typeName}已经是空的了！`);
+                return;
+            }
+        
+            if (confirm(`确定要清空你的所有${typeName}吗？这个操作无法撤销。`)) {
+                appState.userData[type] = [];
+                debouncedSaveUserData(); // 使用已有的防抖保存函数
+                showToast(`${typeName}已清空！`);
+                
+                const activeFilter = document.querySelector('.filter-btn.active');
+                if (activeFilter && activeFilter.id.includes(type)) {
+                    resetOrder();
+                } else {
+                    renderQuestions(false);
+                }
+            }
+        };
     };
 
     const getOrCreateGuestId = () => { let id = localStorage.getItem('k3_guest_id'); if (!id) { id = `guest_${Date.now()}`; localStorage.setItem('k3_guest_id', id); } return id; };
@@ -257,6 +288,8 @@ document.addEventListener('DOMContentLoaded', () => {
         resetOrderBtn.addEventListener('click', resetOrder);
         showFavoritesBtn.addEventListener('click', () => filterQuestions('favorites'));
         showMistakesBtn.addEventListener('click', () => filterQuestions('mistakes'));
+        clearFavoritesBtn.addEventListener('click', () => clearUserData('favorites'));
+        clearMistakesBtn.addEventListener('click', () => clearUserData('mistakes'));
 
         questionArea.addEventListener('click', e => {
             if (e.target.classList.contains('favorite-btn')) {
