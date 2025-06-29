@@ -1,9 +1,9 @@
-// app.js for K3-Drill (V17 - Correct Initialization Flow)
+// app.js for K3-Drill (V18 - Persistent Data Fix)
 
 document.addEventListener('DOMContentLoaded', () => {
     
     const appState = {
-        originalQuestions: [...k3_questions].sort((a, b) => (a.title.match(/\*(\d+)/)?.[1] || 999) - (b.title.match(/\*(\d+)/)?.[1] || 999)),
+        originalQuestions: [...k3_questions],
         currentQuestions: [],
         currentIndex: 0,
         currentMode: 'practice',
@@ -34,44 +34,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const debounce = (func, delay) => { let timeout; return function(...args) { clearTimeout(timeout); timeout = setTimeout(() => func.apply(this, args), delay); }; };
     const dispatchStateChange = () => document.dispatchEvent(new CustomEvent('appStateChanged'));
     
-    const setUser = async (user) => {
-        appState.isDataLoaded = false;
-        if (user) {
-            appState.currentUser = user.token ? user : { sub: user.id || getOrCreateGuestId(), isGuest: true, token: null };
-            await fetchUserData();
-        } else {
-            appState.currentUser = null;
-            appState.userData = { favorites: [], mistakes: [] };
-        }
-        appState.isDataLoaded = true;
-        dispatchStateChange();
-    };
-
-    const fetchUserData = async () => { if (!appState.currentUser) { appState.isDataLoaded = true; return; } try { const endpoint = appState.currentUser.isGuest ? `/api/user-data?id=${appState.currentUser.sub}` : '/api/user-data'; const headers = appState.currentUser.token ? { Authorization: `Bearer ${appState.currentUser.token.access_token}` } : {}; const response = await fetch(endpoint, { headers }); if (response.status === 404) { appState.userData = { favorites: [], mistakes: [] }; } else if (!response.ok) { throw new Error('Failed to fetch user data'); } else { appState.userData = await response.json() || { favorites: [], mistakes: [] }; } } catch (error) { console.error(error); showToast("同步用户数据失败！"); appState.userData = { favorites: [], mistakes: [] }; } };
+    const setUser = async (user) => { appState.isDataLoaded = false; if (user) { appState.currentUser = user.token ? user : { sub: user.id || getOrCreateGuestId(), isGuest: true, token: null }; await fetchUserData(); } else { appState.currentUser = null; appState.userData = { favorites: [], mistakes: [] }; } appState.isDataLoaded = true; dispatchStateChange(); };
+    const fetchUserData = async () => { if (!appState.currentUser) { appState.isDataLoaded = true; return; } try { const endpoint = appState.currentUser.isGuest ? `/api/user-data?id=${appState.currentUser.sub}` : '/api/user-data'; const headers = appState.currentUser.token ? { Authorization: `Bearer ${appState.currentUser.token.access_token}` } : {}; const response = await fetch(endpoint, { headers }); if (response.status === 404) { appState.userData = { favorites: [], mistakes: [] }; } else if (!response.ok) { throw new Error('Failed to fetch user data'); } else { appState.userData = await response.json() || { favorites: [], mistakes: [] }; } } catch (error) { console.error("Fetch User Data Error:", error); showToast("同步用户数据失败！"); appState.userData = { favorites: [], mistakes: [] }; } };
     const saveUserData = async () => { if (!appState.currentUser) return; try { const endpoint = appState.currentUser.isGuest ? `/api/user-data?id=${appState.currentUser.sub}` : '/api/user-data'; const headers = { 'Content-Type': 'application/json', ...(appState.currentUser.token && { Authorization: `Bearer ${appState.currentUser.token.access_token}` }) }; await fetch(endpoint, { method: 'POST', headers, body: JSON.stringify(appState.userData) }); console.log("User data saved."); } catch (error) { console.error('Failed to save user data:', error); showToast("保存数据失败！"); } };
     const debouncedSaveUserData = debounce(saveUserData, 1500);
 
-    const updateUIOnStateChange = () => {
-        const guestWelcome = document.querySelector('.guest-welcome');
-        if (guestWelcome) guestWelcome.remove();
-        const user = appState.currentUser;
-        const isLoggedIn = !!user;
-        showFavoritesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
-        clearFavoritesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
-        showMistakesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
-        clearMistakesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
-        guestLoginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
-        identityMenu.style.display = 'block';
-        if (isLoggedIn && user.isGuest) {
-            identityMenu.style.display = 'none';
-            const welcome = document.createElement('div');
-            welcome.className = 'guest-welcome';
-            welcome.innerHTML = `<span>游客模式</span> <button id="exit-guest-btn">退出</button>`;
-            document.querySelector('.header-user-area').appendChild(welcome);
-        }
-        renderQuestions(isLoggedIn ? false : true);
-    };
-
+    const updateUIOnStateChange = () => { const guestWelcome = document.querySelector('.guest-welcome'); if (guestWelcome) guestWelcome.remove(); const user = appState.currentUser; const isLoggedIn = !!user; showFavoritesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none'; clearFavoritesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none'; showMistakesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none'; clearMistakesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none'; guestLoginBtn.style.display = isLoggedIn ? 'none' : 'inline-block'; identityMenu.style.display = 'block'; if (isLoggedIn && user.isGuest) { identityMenu.style.display = 'none'; const welcome = document.createElement('div'); welcome.className = 'guest-welcome'; welcome.innerHTML = `<span>游客模式</span> <button id="exit-guest-btn">退出</button>`; document.querySelector('.header-user-area').appendChild(welcome); } if (!isLoggedIn) { resetOrder(); } else { renderQuestions(false); } };
     const renderQuestions = (resetAll = true) => { if (resetAll) { appState.currentQuestions = [...appState.originalQuestions]; allControlButtons.forEach(btn => btn.classList.remove('active')); resetOrderBtn.classList.add('active'); practiceModeBtn.classList.add('active'); } questionArea.innerHTML = ''; appState.currentQuestions.forEach((q, index) => { const isFavorited = appState.isDataLoaded && appState.userData.favorites.includes(q.id); const isMulti = q.correctAnswer.includes('┋'); const inputType = isMulti ? 'checkbox' : 'radio'; const optionsHTML = q.options.map((opt, optIndex) => `<label class="option-item" for="q-${q.id}-opt-${optIndex}" data-option-char="${opt.charAt(0)}"><input type="${inputType}" id="q-${q.id}-opt-${optIndex}" name="q-${q.id}" value="${opt.charAt(0)}">${opt}</label>`).join(''); const questionDiv = document.createElement('div'); questionDiv.className = 'question-item'; questionDiv.id = `q-item-${q.id}`; questionDiv.dataset.questionId = q.id; questionDiv.innerHTML = `<div class="question-title"><span>${q.title}</span><button class="favorite-btn ${isFavorited ? 'favorited' : ''}" data-q-id="${q.id}" title="收藏/取消收藏">⭐</button></div><div class="question-image"><img src="${q.image}" alt="题目图片" loading="lazy"></div><div class="options-list">${optionsHTML}</div><div class="action-buttons"><button class="submit-btn">确定</button><button class="reveal-btn">查看答案</button></div><div class="answer-area"></div>`; questionArea.appendChild(questionDiv); }); showQuestion(resetAll ? 0 : appState.currentIndex); setMode(appState.currentMode); };
     const findQuestionData = (id) => appState.originalQuestions.find(q => q.id === id);
     const checkAnswer = (questionId) => { const questionData = findQuestionData(questionId); if (!questionData) return; const questionEl = document.getElementById(`q-item-${questionId}`); const answerArea = questionEl.querySelector('.answer-area'); const selectedValues = Array.from(questionEl.querySelectorAll('input:checked')).map(input => input.value).sort(); const correctValues = questionData.correctAnswer.split('┋').map(ans => ans.charAt(0)).sort(); const isCorrect = selectedValues.length === correctValues.length && selectedValues.every((v, i) => v === correctValues[i]); if (isCorrect) { answerArea.innerHTML = `<strong>回答正确！</strong>`; answerArea.className = 'answer-area correct'; answerArea.style.display = 'block'; setTimeout(() => { answerArea.style.display = 'none'; if (appState.currentIndex < appState.currentQuestions.length - 1) { showQuestion(appState.currentIndex + 1); } else { showToast("恭喜你，已经是最后一题了！"); } }, 500); } else { answerArea.innerHTML = `<strong>回答错误！</strong><br>正确答案：${questionData.correctAnswer}`; answerArea.className = 'answer-area incorrect'; answerArea.style.display = 'block'; if (appState.currentUser) { if (!appState.userData.mistakes.includes(questionData.id)) { appState.userData.mistakes.push(questionData.id); debouncedSaveUserData(); showToast("已加入错题本！"); } } } };
@@ -101,7 +69,31 @@ document.addEventListener('DOMContentLoaded', () => {
         showSignQuestionsBtn.addEventListener('click', () => filterQuestions('sign'));
         guestLoginBtn.addEventListener('click', () => setUser({ isGuest: true }));
         document.body.addEventListener('click', e => { if (e.target?.id === 'exit-guest-btn') { localStorage.removeItem('k3_guest_id'); setUser(null); } });
-        questionArea.addEventListener('click', e => { const questionItem = e.target.closest('.question-item'); if (!questionItem) return; const questionId = questionItem.dataset.questionId; if (e.target.classList.contains('favorite-btn')) { if (!appState.currentUser) { netlifyIdentity.open('login'); return; } if (!appState.isDataLoaded) { showToast("正在同步数据..."); return; } const isFavorited = e.target.classList.toggle('favorited'); const favIndex = appState.userData.favorites.indexOf(questionId); if (isFavorited) { if (favIndex === -1) appState.userData.favorites.push(questionId); } else { if (favIndex > -1) appState.userData.favorites.splice(favIndex, 1); } debouncedSaveUserData(); } if (appState.currentMode === 'practice') { if (e.target.classList.contains('submit-btn')) checkAnswer(questionId); if (e.target.classList.contains('reveal-btn')) revealAnswer(questionId); if (e.target.closest('.option-item')) { const label = e.target.closest('.option-item'); const input = label.querySelector('input'); if (input.type === 'radio') questionItem.querySelectorAll('.option-item').forEach(l => l.classList.remove('selected')); label.classList.toggle('selected', input.checked); } } });
+
+        questionArea.addEventListener('click', e => {
+            const questionItem = e.target.closest('.question-item');
+            if (!questionItem) return;
+            const questionId = questionItem.dataset.questionId;
+            if (e.target.classList.contains('favorite-btn')) {
+                if (!appState.currentUser) { netlifyIdentity.open('login'); return; }
+                if (!appState.isDataLoaded) { showToast("正在同步数据..."); return; }
+                const isFavorited = e.target.classList.toggle('favorited');
+                const favIndex = appState.userData.favorites.indexOf(questionId);
+                if (isFavorited) { if (favIndex === -1) appState.userData.favorites.push(questionId); } 
+                else { if (favIndex > -1) appState.userData.favorites.splice(favIndex, 1); }
+                debouncedSaveUserData();
+            }
+            if (appState.currentMode === 'practice') {
+                if (e.target.classList.contains('submit-btn')) checkAnswer(questionId);
+                if (e.target.classList.contains('reveal-btn')) revealAnswer(questionId);
+                if (e.target.closest('.option-item')) {
+                    const label = e.target.closest('.option-item');
+                    const input = label.querySelector('input');
+                    if (input.type === 'radio') questionItem.querySelectorAll('.option-item').forEach(l => l.classList.remove('selected'));
+                    label.classList.toggle('selected', input.checked);
+                }
+            }
+        });
     }
     
     function init() {
@@ -112,7 +104,7 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (localStorage.getItem('k3_guest_id')) {
                 setUser({ isGuest: true, id: localStorage.getItem('k3_guest_id') });
             } else {
-                // Completely new user, render the page without user data
+                updateUIOnStateChange();
                 renderQuestions();
                 setMode('practice');
                 resetOrderBtn.classList.add('active');
