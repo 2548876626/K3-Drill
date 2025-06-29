@@ -31,6 +31,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const allControlButtons = document.querySelectorAll('.header-controls button');
     const clearFavoritesBtn = document.getElementById('clear-favorites-btn');
     const clearMistakesBtn = document.getElementById('clear-mistakes-btn');
+    const showSignQuestionsBtn = document.getElementById('show-sign-questions-btn');
 
     // --- Utility Functions ---
     const debounce = (func, delay) => {
@@ -212,7 +213,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const resetOrder = () => {
-        document.querySelectorAll('.filter-btn, #shuffle-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.header-controls button').forEach(b => b.classList.remove('active'));
         resetOrderBtn.classList.add('active');
         appState.currentQuestions = [...appState.originalQuestions];
         renderQuestions(false);
@@ -221,44 +222,76 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const filterQuestions = (type) => {
+        // 清除所有控制按钮的激活状态
         allControlButtons.forEach(btn => btn.classList.remove('active'));
-        const targetBtn = type === 'favorites' ? showFavoritesBtn : showMistakesBtn;
-        targetBtn.classList.add('active');
+        // 默认激活做题模式
         practiceModeBtn.classList.add('active');
-        const idList = appState.userData[type];
-        if (!idList || idList.length === 0) {
-            alert(`你的${type === 'favorites' ? '收藏夹' : '错题本'}是空的！`);
-            resetOrder();
-            return;
-        }
-        appState.currentQuestions = appState.originalQuestions.filter(q => idList.includes(q.questionNumber));
-        renderQuestions(false);
-        setMode('practice');
-        const clearUserData = (type) => {
-            const typeName = type === 'favorites' ? '收藏夹' : '错题本';
+    
+        let filteredQuestions = [];
+        let alertMessage = "";
+    
+        if (type === 'favorites' || type === 'mistakes') {
             if (!appState.currentUser) {
-                alert(`请先登录或进入游客模式以管理${typeName}！`);
+                alert(`请先登录或进入游客模式以查看${type === 'favorites' ? '收藏' : '错题'}！`);
+                netlifyIdentity.open('login');
                 return;
             }
-        
-            if (appState.userData[type].length === 0) {
-                showToast(`${typeName}已经是空的了！`);
+            const targetBtn = type === 'favorites' ? showFavoritesBtn : showMistakesBtn;
+            targetBtn.classList.add('active');
+            const idList = appState.userData[type];
+            if (!idList || idList.length === 0) {
+                alert(`你的${type === 'favorites' ? '收藏夹' : '错题本'}是空的！`);
+                resetOrder(); // 如果为空，则返回默认顺序
                 return;
             }
-        
-            if (confirm(`确定要清空你的所有${typeName}吗？这个操作无法撤销。`)) {
-                appState.userData[type] = [];
-                debouncedSaveUserData(); // 使用已有的防抖保存函数
-                showToast(`${typeName}已清空！`);
-                
-                const activeFilter = document.querySelector('.filter-btn.active');
-                if (activeFilter && activeFilter.id.includes(type)) {
-                    resetOrder();
-                } else {
-                    renderQuestions(false);
-                }
+            filteredQuestions = appState.originalQuestions.filter(q => idList.includes(q.questionNumber));
+        } else if (type === 'sign') {
+            showSignQuestionsBtn.classList.add('active'); // 激活标识题按钮
+            // 筛选出标题中包含“标识”二字的题目
+            filteredQuestions = appState.originalQuestions.filter(q => q.title.includes('标识'));
+            if (filteredQuestions.length === 0) {
+                alert('没有找到相关的标识题目！');
+                resetOrder();
+                return;
             }
-        };
+        }
+    
+        appState.currentQuestions = filteredQuestions;
+        renderQuestions(false); // 使用筛选后的题目列表重新渲染，但不重置顺序
+        setMode('practice');
+    };
+    
+    const updateUserState = (user) => {
+        const guestWelcome = document.querySelector('.guest-welcome');
+        if (guestWelcome) guestWelcome.remove();
+    
+        const isLoggedIn = !!user; // 只要有 user 对象（无论是注册用户还是游客），就视为“已登录”状态
+    
+        // 根据是否登录，统一控制所有相关元素的显示/隐藏
+        showFavoritesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+        clearFavoritesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+        showMistakesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+        clearMistakesBtn.style.display = isLoggedIn ? 'inline-flex' : 'none';
+        guestLoginBtn.style.display = isLoggedIn ? 'none' : 'inline-block';
+        identityMenu.style.display = 'block'; // 让 Netlify Widget 自己决定显示什么
+    
+        if (user) {
+            appState.currentUser = user.token ? user : { sub: getOrCreateGuestId(), isGuest: true, token: null };
+            if (appState.currentUser.isGuest) {
+                // 如果是游客，我们才需要手动隐藏 Netlify 菜单，并显示自己的欢迎语
+                identityMenu.style.display = 'none';
+                const welcome = document.createElement('div');
+                welcome.className = 'guest-welcome';
+                welcome.innerHTML = `<span>游客模式</span> <button id="exit-guest-btn">退出</button>`;
+                document.querySelector('.header-user-area').appendChild(welcome);
+            }
+            fetchUserData();
+        } else {
+            // 完全未登录
+            appState.currentUser = null;
+            appState.userData = { favorites: [], mistakes: [] };
+            resetOrder();
+        }
     };
 
     const getOrCreateGuestId = () => { let id = localStorage.getItem('k3_guest_id'); if (!id) { id = `guest_${Date.now()}`; localStorage.setItem('k3_guest_id', id); } return id; };
@@ -288,6 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
         resetOrderBtn.addEventListener('click', resetOrder);
         showFavoritesBtn.addEventListener('click', () => filterQuestions('favorites'));
         showMistakesBtn.addEventListener('click', () => filterQuestions('mistakes'));
+        showSignQuestionsBtn.addEventListener('click', () => filterQuestions('sign'));
         clearFavoritesBtn.addEventListener('click', () => clearUserData('favorites'));
         clearMistakesBtn.addEventListener('click', () => clearUserData('mistakes'));
 

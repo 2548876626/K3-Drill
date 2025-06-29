@@ -63,6 +63,7 @@ body {
 }
 
 /* --- Header V3 Layout --- */
+/* --- Header V4 Final Layout --- */
 .app-header {
     padding: 15px 25px;
     border-bottom: 1px solid var(--border-color);
@@ -70,10 +71,18 @@ body {
     justify-content: space-between;
     align-items: center;
     gap: 20px;
+    flex-wrap: wrap;
+}
+.header-title h1 { font-size: 1.4em; margin: 0; white-space: nowrap; }
+.header-controls {
+    grid-column: 2 / 3;
+    display: flex;
+    justify-content: center; /* 确保控制按钮始终居中 */
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
 }
 
-.header-title h1 { font-size: 1.4em; margin: 0; white-space: nowrap; }
-.header-controls { display: flex; justify-content: center; align-items: center; gap: 10px; flex-wrap: wrap; }
 .control-group { display: flex; align-items: center; border: 1px solid var(--border-color); border-radius: 20px; overflow: hidden; }
 .control-group button { margin: 0; border: none; border-radius: 0; border-right: 1px solid var(--border-color); padding: 8px 12px; font-size: 0.9em; background: transparent; cursor: pointer; transition: all 0.2s ease; }
 .control-group > button:last-child { border-right: none; }
@@ -92,7 +101,19 @@ button.active, .control-group button:hover {
 #reset-order-btn.active, #reset-order-btn:hover { background-color: var(--reset-color); }
 .filter-btn.active, .filter-btn:hover { background-color: var(--favorite-color); }
 
-.header-user-area { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+.header-user-area {
+    grid-column: 3 / 4;
+    display: flex; /* 使用 flex 布局 */
+    justify-content: flex-end; /* 强制内容靠右对齐 */
+    align-items: center;
+    gap: 15px;
+    min-width: 200px; /* 给用户区一个最小宽度，防止被挤压 */
+}
+/* 确保 Netlify 菜单不会破坏布局 */
+.header-user-area [data-netlify-identity-menu] {
+    flex-shrink: 0; /* 防止被压缩 */
+}
+
 
 /* Netlify Identity Widget & Guest Mode Styles */
 [data-netlify-identity-menu] ul { list-style-type: none; margin: 0; padding: 0; display: flex; gap: 10px; align-items: center; }
@@ -231,4 +252,79 @@ button.active, .control-group button:hover {
     display: flex;
     align-items: center;
     gap: 10px;
+}
+/* --- 清空按钮样式 --- */
+.clear-btn {
+    padding: 8px 10px; /* 让它比旁边的按钮窄一些 */
+    font-size: 1.1em;   /* 让垃圾桶图标大一点 */
+    background: transparent;
+    border: none;
+    border-left: 1px solid var(--border-color); /* 和组内其他按钮保持一致的分隔线 */
+    cursor: pointer;
+    color: var(--text-color-light);
+    transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+    background-color: var(--incorrect-color); /* 鼠标悬停时显示危险的红色 */
+    color: white;
+}
+/* --- “标识题”筛选按钮的专属颜色 --- */
+#show-sign-questions-btn {
+    border-color: #3498db; /* 使用主题的主色调 */
+    color: #3498db;
+}
+
+#show-sign-questions-btn.active,
+#show-sign-questions-btn:hover {
+    background-color: #3498db;
+    color: white;
+}
+.header-title {
+    flex-shrink: 0; /* 防止标题被压缩 */
+}
+.header-title h1 {
+    font-size: 1.4em;
+    margin: 0;
+}
+
+.header-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap; /* 允许控制按钮换行 */
+    flex-grow: 1; /* 占据中间的剩余空间 */
+}
+
+.control-group {
+    display: flex;
+    align-items: center;
+    border: 1px solid var(--border-color);
+    border-radius: 20px;
+    overflow: hidden;
+    background-color: var(--card-bg-color); /* 确保背景色 */
+}
+
+.control-group button {
+    margin: 0;
+    border: none;
+    border-radius: 0;
+    padding: 8px 12px;
+    font-size: 0.9em;
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-right: 1px solid var(--border-color);
+}
+.control-group > button:last-child { border-right: none; }
+.clear-btn { padding: 8px 10px; font-size: 1.1em; }
+
+
+.header-user-area {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 15px;
+    flex-shrink: 0; /* 防止用户区被压缩 */
 }

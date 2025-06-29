@@ -13,30 +13,33 @@
             <div class="header-title">
                 <h1>科目三 安全隐患排除训练</h1>
             </div>
-            <header class="app-header">
-               
-            
-                    <div class="header-controls">
-                    <div class="control-group">
-                        <button id="shuffle-btn" class="mode-btn">🔀 乱序</button>
-                        <button id="reset-order-btn" class="mode-btn">🔢 顺序</button>
-                    </div>
-                    <div class="control-group">
-                        <button id="show-favorites-btn" class="filter-btn" style="display: none;">★ 收藏</button>
-                        <button id="show-mistakes-btn" class="filter-btn" style="display: none;">✘ 错题</button>
-                    </div>
-                    <div class="control-group">
-                        <button id="practice-mode-btn" class="mode-btn active">📝 做题</button>
-                        <button id="review-mode-btn" class="mode-btn">📚 速览</button>
-                    </div>
-                    </div>
-            
-                <div class="header-user-area">
-                    <div data-netlify-identity-menu></div>
-                    <button id="guest-login-btn" class="mode-btn guest-btn">游客模式</button>
+        
+            <!-- 所有控制按钮都放在这里 -->
+            <div class="header-controls">
+                <div class="control-group">
+                    <button id="shuffle-btn" class="mode-btn">🔀 乱序</button>
+                    <button id="reset-order-btn" class="mode-btn">🔢 顺序</button>
                 </div>
-            </header>
-            
+                <div class="control-group">
+                    <button id="show-favorites-btn" class="filter-btn" style="display: none;">★ 收藏</button>
+                    <button id="clear-favorites-btn" class="clear-btn" style="display: none;" title="清空收藏夹">🗑️</button>
+                    <button id="show-mistakes-btn" class="filter-btn" style="display: none;">✘ 错题</button>
+                    <button id="clear-mistakes-btn" class="clear-btn" style="display: none;" title="清空错题本">🗑️</button>
+                </div>
+                <div class="control-group">
+                    <button id="show-sign-questions-btn" class="filter-btn">🚩 标识题</button>
+                </div>
+                <div class="control-group">
+                    <button id="practice-mode-btn" class="mode-btn active">📝 做题</button>
+                    <button id="review-mode-btn" class="mode-btn">📚 速览</button>
+                </div>
+            </div>
+        
+            <!-- 用户区独立出来 -->
+            <div class="header-user-area">
+                <div data-netlify-identity-menu></div>
+                <button id="guest-login-btn" class="mode-btn guest-btn">游客模式</button>
+            </div>
         </header>
 
         <main class="app-main">
