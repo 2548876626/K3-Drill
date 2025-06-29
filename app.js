@@ -22,6 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const reviewModeBtn = document.getElementById('review-mode-btn');
     const shuffleBtn = document.getElementById('shuffle-btn');
     const resetOrderBtn = document.getElementById('reset-order-btn');
+    const sortByAnswerBtn = document.getElementById('sort-by-answer-btn');
     const showFavoritesBtn = document.getElementById('show-favorites-btn');
     const showMistakesBtn = document.getElementById('show-mistakes-btn');
     const guestLoginBtn = document.getElementById('guest-login-btn');
@@ -54,6 +55,55 @@ document.addEventListener('DOMContentLoaded', () => {
     const showToast = (message) => { let toast = document.querySelector('.toast-notification'); if (toast) toast.remove(); toast = document.createElement('div'); toast.className = 'toast-notification'; toast.textContent = message; document.body.appendChild(toast); setTimeout(() => toast.classList.add('show'), 10); setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 2000); }, 2000); };
     const toastStyle = document.createElement('style'); toastStyle.textContent = `.toast-notification { position: fixed; bottom: 30px; left: 50%; transform: translateX(-50%); padding: 12px 25px; border-radius: 50px; background: linear-gradient(135deg, #1abc9c, #2ecc71); color: white; font-size: 16px; font-weight: 500; z-index: 10000; opacity: 0; transition: all 0.5s ease; box-shadow: 0 5px 15px rgba(0,0,0,0.2); } .toast-notification.show { opacity: 1; bottom: 50px; }`; document.head.appendChild(toastStyle);
     
+    // 按答案规律排序函数
+    const sortByAnswer = () => {
+        document.querySelectorAll('.filter-btn, #reset-order-btn, #shuffle-btn').forEach(b => b.classList.remove('active'));
+        sortByAnswerBtn.classList.add('active');
+        
+        // 确保当前是常规题
+        if (!appState.currentQuestions.every(q => !q.title.includes('标识'))) {
+            // 如果不是纯常规题，先筛选常规题
+            filterQuestions('other');
+            setTimeout(() => sortByAnswer(), 100); // 延迟执行，确保筛选完成
+            return;
+        }
+        
+        // 按答案内容对题目进行分组
+        const answerGroups = {};
+        
+        // 先将题目按答案分组
+        appState.currentQuestions.forEach(q => {
+            // 提取答案的关键信息，用于分组
+            const answerKey = q.correctAnswer.split('┋')
+                .map(ans => ans.trim().charAt(0)) // 只取每个答案的首字母
+                .sort()
+                .join('');
+                
+            // 初始化分组
+            if (!answerGroups[answerKey]) {
+                answerGroups[answerKey] = [];
+            }
+            
+            // 添加到对应分组
+            answerGroups[answerKey].push(q);
+        });
+        
+        // 将分组后的题目重新组合
+        const sortedQuestions = [];
+        
+        // 按答案字母顺序排序分组
+        Object.keys(answerGroups).sort().forEach(key => {
+            sortedQuestions.push(...answerGroups[key]);
+        });
+        
+        // 更新当前题目列表
+        appState.currentQuestions = sortedQuestions;
+        
+        renderQuestions(false);
+        setMode(appState.currentMode);
+        showToast("已按答案内容分组排序！");
+    };
+
     function setupEventListeners() {
         document.addEventListener('appStateChanged', updateUIOnStateChange);
         prevBtn.addEventListener('click', () => showQuestion(appState.currentIndex - 1));
@@ -62,6 +112,7 @@ document.addEventListener('DOMContentLoaded', () => {
         reviewModeBtn.addEventListener('click', () => setMode('review'));
         shuffleBtn.addEventListener('click', shuffleQuestions);
         resetOrderBtn.addEventListener('click', resetOrder);
+        sortByAnswerBtn.addEventListener('click', sortByAnswer);
         showFavoritesBtn.addEventListener('click', () => filterQuestions('favorites'));
         showMistakesBtn.addEventListener('click', () => filterQuestions('mistakes'));
         clearFavoritesBtn.addEventListener('click', () => clearUserData('favorites'));
