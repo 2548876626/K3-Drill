@@ -219,3 +219,16 @@ button.active, .control-group button:hover {
         box-shadow: none; /* 确保没有内阴影 */
     }
 }
+/* 优化用户区域布局 */
+.header-user-area {
+    gap: 15px; /* 在子元素之间增加间距 */
+}
+
+/* 统一 Netlify 菜单和游客欢迎信息的样式 */
+[data-netlify-identity-menu] ul,
+.guest-welcome {
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}

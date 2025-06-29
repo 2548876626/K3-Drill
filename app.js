@@ -72,48 +72,52 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Function to update the UI based on user state
     const updateUserState = (user) => {
-        if (user && user.token) { // Logged-in Netlify user
-            currentUser = user;
-            guestLoginBtn.style.display = 'none'; // Hide guest button
-            console.log('Logged in as:', user.email);
-            // 登录后，获取用户数据
-            fetchUserData();
-            // 显示筛选按钮
-            if (showFavoritesBtn) showFavoritesBtn.style.display = 'inline-block';
-            if (showMistakesBtn) showMistakesBtn.style.display = 'inline-block';
-        } else if (user && user.isGuest) { // Guest user
-            currentUser = { sub: user.id, isGuest: true };
-            identityMenu.style.display = 'none'; // Hide Netlify login/logout
-            guestLoginBtn.style.display = 'none'; // Hide guest button after "login"
-            // Create a fake welcome message for guest
-            const guestWelcome = document.createElement('div');
-            guestWelcome.className = 'guest-welcome';
-            guestWelcome.innerHTML = `<span>欢迎, 游客 (ID: ${user.id.substring(0, 12)}...)</span> <button id="exit-guest-btn">退出游客模式</button>`;
-            identityMenu.parentNode.insertBefore(guestWelcome, identityMenu.nextSibling);
-            console.log('Entered Guest Mode with ID:', user.id);
-            // 显示筛选按钮
-            if (showFavoritesBtn) showFavoritesBtn.style.display = 'inline-block';
-            if (showMistakesBtn) showMistakesBtn.style.display = 'inline-block';
-            // 尝试从localStorage加载游客数据
-            try {
-                const savedData = localStorage.getItem(`k3_guest_data_${user.id}`);
-                if (savedData) {
-                    userData = JSON.parse(savedData);
-                    renderQuestions(); // 重新渲染以显示收藏状态
-                }
-            } catch (error) {
-                console.error('Failed to load guest data:', error);
+        // 清理可能存在的旧的游客欢迎信息
+        const guestWelcome = document.querySelector('.guest-welcome');
+        if (guestWelcome) guestWelcome.remove();
+    
+        if (user) { // 只要有用户(不管是注册用户还是游客)，就进入已登录状态
+            // 统一处理用户对象
+            currentUser = user.token 
+                ? user // 是一个 Netlify 注册用户
+                : { sub: getOrCreateGuestId(), isGuest: true, token: null }; // 是一个游客
+    
+            // 显示收藏和错题本按钮
+            showFavoritesBtn.style.display = 'inline-flex';
+            showMistakesBtn.style.display = 'inline-flex';
+    
+            if (currentUser.isGuest) {
+                // 如果是游客，隐藏 Netlify 菜单，显示我们自己的欢迎信息
+                identityMenu.style.display = 'none';
+                guestLoginBtn.style.display = 'none';
+                const welcomeDiv = document.createElement('div');
+                welcomeDiv.className = 'guest-welcome';
+                welcomeDiv.innerHTML = `<span>游客模式</span> <button id="exit-guest-btn">退出</button>`;
+                // 将欢迎信息插入到 user-area 中
+                document.querySelector('.header-user-area').appendChild(welcomeDiv);
+            } else {
+                // 如果是注册用户，显示 Netlify 菜单，隐藏游客按钮
+                identityMenu.style.display = 'block';
+                guestLoginBtn.style.display = 'none';
             }
-        } else { // Not logged in, not a guest
+    
+            // 获取该用户的数据
+            fetchUserData();
+            
+        } else { // 完全未登录状态
             currentUser = null;
-            guestLoginBtn.style.display = 'inline-block'; // Show guest button
-            console.log('No user logged in. Offering guest mode.');
-            // 登出后重置状态
             userData = { favorites: [], mistakes: [] };
-            if (showFavoritesBtn) showFavoritesBtn.style.display = 'none';
-            if (showMistakesBtn) showMistakesBtn.style.display = 'none';
-            currentQuestions = [...originalQuestions];
-            renderQuestions();
+            
+            // 显示 Netlify 菜单(Sign Up/Log In) 和游客模式按钮
+            identityMenu.style.display = 'block';
+            guestLoginBtn.style.display = 'inline-block';
+            
+            // 隐藏收藏和错题本按钮
+            showFavoritesBtn.style.display = 'none';
+            showMistakesBtn.style.display = 'none';
+            
+            // 确保恢复到默认题目顺序
+            resetOrder();
         }
     };
 
