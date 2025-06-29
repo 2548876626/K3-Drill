@@ -1,36 +1,55 @@
 // netlify/functions/user-data.js
-import { getStore } from "@netlify/blobs";
 
-export default async (req, context) => {
-    // 确保用户已登录 (无论是注册用户还是游客)
-    // context.netlify.identity.user 是 Netlify 自动注入的
-    const user = context.netlify.identity.user;
-    if (!user) {
-        return new Response("You must be logged in.", { status: 401 });
+const { getStore } = require("@netlify/blobs");
+
+exports.handler = async (event, context) => {
+    const user = context.clientContext && context.clientContext.user;
+    
+    // 从查询参数获取 guestId (针对游客模式)
+    const guestId = event.queryStringParameters.id;
+    // 使用真实用户的 sub 或游客的 ID 作为 key
+    const userId = user ? user.sub : guestId;
+
+    if (!userId) {
+        return { statusCode: 401, body: "Unauthorized: User or Guest ID is required." };
     }
     
-    // 使用用户的 sub (subject) 作为唯一的 key，这是用户的永久ID
-    const userId = user.sub; 
     const userDataStore = getStore("userData");
 
-    // 根据请求方法处理
-    if (req.method === "GET") {
-        // 获取用户数据
-        const data = await userDataStore.get(userId, { type: "json" });
-        return new Response(JSON.stringify(data || { favorites: [], mistakes: [] }), {
-            headers: { "Content-Type": "application/json" },
-        });
+    if (event.httpMethod === "GET") {
+        try {
+            const data = await userDataStore.get(userId, { type: "json" });
+            return {
+                statusCode: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(data || { favorites: [], mistakes: [] }),
+            };
+        } catch (error) {
+            // 如果 get 操作因为 key 不存在而出错 (某些存储会这样)，则返回空
+            if (error.name === 'BlobNotFoundError') {
+                 return {
+                    statusCode: 200,
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ favorites: [], mistakes: [] }),
+                };
+            }
+            return { statusCode: 500, body: error.toString() };
+        }
     }
 
-    if (req.method === "POST") {
-        // 更新用户数据
-        const newUserData = await req.json();
-        await userDataStore.setJSON(userId, newUserData);
-        return new Response(JSON.stringify({ success: true, data: newUserData }), {
-            headers: { "Content-Type": "application/json" },
-        });
+    if (event.httpMethod === "POST") {
+        try {
+            const newUserData = JSON.parse(event.body);
+            await userDataStore.setJSON(userId, newUserData);
+            return {
+                statusCode: 200,
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ success: true }),
+            };
+        } catch (error) {
+            return { statusCode: 500, body: error.toString() };
+        }
     }
 
-    // 如果是其他方法，则不允许
-    return new Response("Method Not Allowed", { status: 405 });
+    return { statusCode: 405, body: "Method Not Allowed" };
 };

@@ -1,0 +1,24 @@
+{
+  "name": "k3-drill",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/2548876626/K3-Drill.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/2548876626/K3-Drill/issues"
+  },
+  "homepage": "https://github.com/2548876626/K3-Drill#readme",
+  "dependencies": {
+    "@netlify/blobs": "^10.0.2"
+  }
+}
