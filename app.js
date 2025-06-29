@@ -58,17 +58,16 @@ document.addEventListener('DOMContentLoaded', () => {
             answerArea.className = 'answer-area correct';
             answerArea.style.display = 'block';
     
-            // 延迟 1 秒后自动跳转到下一题
+            // 关键修改：将延迟时间从 1000 改为 500
             setTimeout(() => {
                 answerArea.style.display = 'none'; // 隐藏提示
                 
-                // 检查是否有下一题
                 if (appState.currentIndex < appState.currentQuestions.length - 1) {
                     showQuestion(appState.currentIndex + 1);
                 } else {
                     showToast("恭喜你，已经是最后一题了！");
                 }
-            }, 1000); // 1秒延迟
+            }, 250); // 延迟时间改为 500 毫秒 (半秒)
     
         } else {
             // --- 答错的逻辑 ---
