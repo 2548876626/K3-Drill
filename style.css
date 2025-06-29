@@ -328,3 +328,14 @@ button.active, .control-group button:hover {
     gap: 15px;
     flex-shrink: 0; /* 防止用户区被压缩 */
 }
+/* --- “常规题”筛选按钮的专属颜色 --- */
+#show-other-questions-btn {
+    border-color: #e67e22; /* 比如用橙色 */
+    color: #e67e22;
+}
+
+#show-other-questions-btn.active,
+#show-other-questions-btn:hover {
+    background-color: #e67e22;
+    color: white;
+}
